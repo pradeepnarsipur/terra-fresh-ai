@@ -1,10 +1,15 @@
 import json
+import os
 import re
 
-import ollama
 import streamlit as st
+from dotenv import load_dotenv
+from groq import Groq
 
-OLLAMA_MODEL = "qwen2.5:1.5b"
+load_dotenv()
+
+GROQ_MODEL = "llama-3.1-8b-instant"
+MISSING_KEY_MESSAGE = "Groq API key missing"
 
 st.set_page_config(
     page_title="Terra Fresh AI",
@@ -103,11 +108,23 @@ st.markdown(
     """
     <div class="terra-hero">
         <h1>🌱 Terra Fresh AI</h1>
-        <p>Smart crop insights powered by local AI — enter your field data and get tailored plant care guidance.</p>
+        <p>Smart crop insights powered by cloud AI — enter your field data and get tailored plant care guidance.</p>
     </div>
     """,
     unsafe_allow_html=True,
 )
+
+
+def get_api_key() -> str | None:
+    key = (os.getenv("GROQ_API_KEY") or "").strip()
+    return key or None
+
+
+def get_groq_client() -> Groq:
+    api_key = get_api_key()
+    if not api_key:
+        raise RuntimeError(MISSING_KEY_MESSAGE)
+    return Groq(api_key=api_key)
 
 
 def build_prompt(crop: str, ph: float, temp: float, humidity: float, symptoms: str) -> str:
@@ -149,17 +166,22 @@ def parse_ai_response(text: str) -> dict:
         "plant_health_summary": text,
         "nutrient_recommendation": "Could not parse structured response. See summary above.",
         "possible_disease_issues": "—",
-        "suggested_action": "Retry or check Ollama model output.",
+        "suggested_action": "Retry or check the model response format.",
     }
 
 
 def get_recommendation(crop: str, ph: float, temp: float, humidity: float, symptoms: str) -> dict:
+    client = get_groq_client()
     prompt = build_prompt(crop, ph, temp, humidity, symptoms)
-    response = ollama.chat(
-        model=OLLAMA_MODEL,
+
+    completion = client.chat.completions.create(
+        model=GROQ_MODEL,
         messages=[{"role": "user", "content": prompt}],
+        temperature=0.4,
+        max_tokens=1024,
     )
-    content = response["message"]["content"]
+
+    content = completion.choices[0].message.content or ""
     return parse_ai_response(content)
 
 
@@ -174,6 +196,9 @@ def render_result_card(title: str, icon: str, body: str) -> None:
         unsafe_allow_html=True,
     )
 
+
+if not get_api_key():
+    st.error(MISSING_KEY_MESSAGE)
 
 with st.form("crop_form", clear_on_submit=False):
     col_left, col_right = st.columns(2)
@@ -203,13 +228,13 @@ with st.form("crop_form", clear_on_submit=False):
             height=120,
         )
 
-    submitted = st.form_submit_button("Get AI Recommendation")
+    submitted = st.form_submit_button("Get AI Recommendation", disabled=not get_api_key())
 
 if submitted:
     if not crop_name.strip():
         st.warning("Please enter a crop name before requesting a recommendation.")
     else:
-        with st.spinner(f"Analyzing with {OLLAMA_MODEL}…"):
+        with st.spinner(f"Analyzing with {GROQ_MODEL}…"):
             try:
                 result = get_recommendation(
                     crop=crop_name.strip(),
@@ -218,10 +243,12 @@ if submitted:
                     humidity=humidity,
                     symptoms=plant_symptoms.strip(),
                 )
+            except RuntimeError as exc:
+                st.error(str(exc))
             except Exception as exc:
                 st.error(
-                    f"Could not reach Ollama. Ensure Ollama is running and the model is installed:\n\n"
-                    f"`ollama pull {OLLAMA_MODEL}`\n\n"
+                    "Could not get a recommendation from Groq. "
+                    "Check your API key, network connection, and Groq service status.\n\n"
                     f"Error: {exc}"
                 )
             else:
@@ -247,4 +274,4 @@ if submitted:
                     result.get("suggested_action", "—"),
                 )
 
-st.caption("Terra Fresh AI · Local inference via Ollama · Model: qwen2.5:1.5b")
+st.caption(f"Terra Fresh AI · Powered by Groq · Model: {GROQ_MODEL}")
