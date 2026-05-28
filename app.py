@@ -61,7 +61,7 @@ st.set_page_config(
     page_title="Terra Fresh AI",
     page_icon="🌱",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 st.markdown(
@@ -423,17 +423,16 @@ def render_marketplace_page() -> None:
         cols = st.columns(cols_per_row)
         for col_idx, product in enumerate(row_items):
             with cols[col_idx]:
+                st.markdown('<div class="product-card">', unsafe_allow_html=True)
+                st.image(product["image"], use_container_width=True)
+                st.markdown(f'<div class="product-name">{product["name"]}</div>', unsafe_allow_html=True)
                 st.markdown(
                     f"""
-                    <div class="product-card">
-                        <img class="product-image" src="{product["image"]}" alt="{product["name"]}">
-                        <div class="product-name">{product["name"]}</div>
-                        <div class="product-meta">
-                            <span class="product-price">{product["price"]}</span>
-                            <span class="product-category">{product["category"]}</span>
-                        </div>
-                        <div class="product-description">{product["description"]}</div>
+                    <div class="product-meta">
+                        <span class="product-price">{product["price"]}</span>
+                        <span class="product-category">{product["category"]}</span>
                     </div>
+                    <div class="product-description">{product["description"]}</div>
                     """,
                     unsafe_allow_html=True,
                 )
@@ -442,7 +441,13 @@ def render_marketplace_page() -> None:
                     f"https://wa.me/{WHATSAPP_NUMBER}"
                     f"?text={whatsapp_message.replace(' ', '%20')}"
                 )
-                st.link_button("WhatsApp Contact", whatsapp_url, use_container_width=True)
+                if st.button(
+                    "WhatsApp Contact",
+                    key=f"whatsapp_{idx}_{col_idx}_{product['name']}",
+                    use_container_width=True,
+                ):
+                    st.markdown(f"[Open WhatsApp chat]({whatsapp_url})")
+                st.markdown("</div>", unsafe_allow_html=True)
 
 
 with st.sidebar:
