@@ -2,8 +2,10 @@ import sqlite3
 
 DB_NAME = "terrafresh.db"
 
+
 def get_connection():
     return sqlite3.connect(DB_NAME)
+
 
 def init_database():
     conn = get_connection()
@@ -31,9 +33,40 @@ def init_database():
         quantity INTEGER,
         description TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(seller_id) REFERENCES sellers(id)
+        FOREIGN KEY (seller_id) REFERENCES sellers(id)
     )
     """)
+
+    conn.commit()
+    conn.close()
+
+
+def create_seller(
+    full_name,
+    business_name,
+    whatsapp,
+    city,
+    password_hash
+):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO sellers (
+            full_name,
+            business_name,
+            whatsapp,
+            city,
+            password_hash
+        )
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        full_name,
+        business_name,
+        whatsapp,
+        city,
+        password_hash
+    ))
 
     conn.commit()
     conn.close()
