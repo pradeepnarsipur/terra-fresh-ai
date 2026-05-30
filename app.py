@@ -1,12 +1,16 @@
 import streamlit as st
 from dotenv import load_dotenv
 
+
+from services.database import init_database
 from components.styles import inject_global_styles
 from pages.ai_advisor_page import render_ai_advisor_page
 from pages.home_page import render_home_page
 from pages.marketplace_page import render_marketplace_page
 
+
 load_dotenv()
+init_database()
 
 st.set_page_config(
     page_title="Terra Fresh AI",
