@@ -68,5 +68,20 @@ def create_seller(
         password_hash
     ))
 
+def get_seller_by_whatsapp(whatsapp):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT * FROM sellers WHERE whatsapp = ?",
+        (whatsapp,)
+    )
+
+    seller = cursor.fetchone()
+
+    conn.close()
+
+    return seller
+
     conn.commit()
     conn.close()

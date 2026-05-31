@@ -1,35 +1,69 @@
 import streamlit as st
 import hashlib
 
-from services.database import create_seller
+from services.supabase_database import create_seller_supabase
 
 
 def render_seller_registration_page():
-    st.write("Seller Registration Loaded")
+
     st.title("Seller Registration")
 
-    full_name = st.text_input("Full Name")
-    business_name = st.text_input("Business Name")
-    whatsapp = st.text_input("WhatsApp Number")
-    city = st.text_input("City")
-    password = st.text_input("Password", type="password")
-    confirm_password = st.text_input("Confirm Password", type="password")
+    full_name = st.text_input(
+        "Full Name",
+        key="full_name"
+    )
+
+    business_name = st.text_input(
+        "Business Name",
+        key="business_name"
+    )
+
+    whatsapp = st.text_input(
+        "WhatsApp Number",
+        key="whatsapp"
+    )
+
+    city = st.text_input(
+        "City",
+        key="city"
+    )
+
+    password = st.text_input(
+        "Password",
+        type="password",
+        key="password"
+    )
+
+    confirm_password = st.text_input(
+        "Confirm Password",
+        type="password",
+        key="confirm_password"
+    )
 
     if st.button("Register"):
 
-        if password != confirm_password:
+        if (
+            not full_name.strip()
+            or not business_name.strip()
+            or not whatsapp.strip()
+            or not city.strip()
+            or not password.strip()
+            or not confirm_password.strip()
+        ):
+            st.error("Please fill all required fields")
+
+        elif password != confirm_password:
             st.error("Passwords do not match")
 
-        elif not full_name or not business_name or not whatsapp or not city:
-            st.error("Please fill all fields")
-
         else:
+
             password_hash = hashlib.sha256(
                 password.encode()
             ).hexdigest()
 
             try:
-                create_seller(
+
+                create_seller_supabase(
                     full_name,
                     business_name,
                     whatsapp,
@@ -37,7 +71,20 @@ def render_seller_registration_page():
                     password_hash
                 )
 
-                st.success("Registration successful")
+                st.success(
+                    "Registration successful! Please login to continue."
+                )
 
             except Exception as e:
-                st.error(f"Registration failed: {e}")
+
+                if "duplicate key value" in str(e):
+
+                    st.error(
+                        "This WhatsApp number is already registered. Please login or use a different number."
+                    )
+
+                else:
+
+                    st.error(
+                        "Registration failed. Please try again."
+                    )
